@@ -88,6 +88,7 @@ int tcb_cnt = 0;
 int tcb2_cnt = 0;
 int pulse_mode;
 int pnum_PWM;
+int pnum_temp;
 float PER;
 float PER_PWM;
 /* USER CODE END PV */
@@ -114,21 +115,54 @@ void makePER(const int alpha[][alpha_num], const int pole[], int amp);
 /* USER CODE BEGIN 0 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     if(htim == &htim1){
-    	if(pulse_mode == 0){
+    	if(transit == 0 || pulse_mode <= 1){
+    		if(pulse_mode == 0){
+    			PER_PWM = 2500000 / frq;
+    			dutyu = Asdutyu * AMP / 32767 + OFFSET;
+    			dutyv = Asdutyv * AMP / 32767 + OFFSET;
+    			dutyw = Asdutyw * AMP / 32767 + OFFSET;
+    		}
+    		else{
+    			PER_PWM = 2500000 / (basfrq*pnum_PWM);
+    			pnum_temp = (pnum_PWM*2)/3;
+    			if(TIM1->CNT > (uint16_t)(PER_PWM/2)){
+    				dutyu = SYNC[(pnum_PWM-3)/6 - 1][tca_cnt%(pnum_PWM*2)] * AMP / 32767 + OFFSET;
+    			    dutyv = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp)%(pnum_PWM*2)] * AMP / 32767 + OFFSET;
+    			    dutyw = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp*2)%(pnum_PWM*2)] * AMP / 32767 + OFFSET;
+    			    tca_cnt++;
+    			    if(tca_cnt >= (pnum_PWM*2)){tca_cnt = 0;}
+    			}
+    			else{
+    			    dutyu = SYNC[(pnum_PWM-3)/6 - 1][tca_cnt%(pnum_PWM*2)] * AMP / 32767 + OFFSET;
+    			    dutyv = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp)%(pnum_PWM*2)] * AMP / 32767 + OFFSET;
+    			    dutyw = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp*2)%(pnum_PWM*2)] * AMP / 32767 + OFFSET;
+    			    tca_cnt++;
+    			}
+    		}
+    	}
+    	/*if(transit == 0 || pulse_mode == 0){
     		PER_PWM = 2500000 / frq;
     		dutyu = Asdutyu * AMP / 32767 + OFFSET;
     		dutyv = Asdutyv * AMP / 32767 + OFFSET;
     		dutyw = Asdutyw * AMP / 32767 + OFFSET;
-    	}
-    	else if(pulse_mode == 1){
+    	}*/
+    	/*else if(transit == 0 || pulse_mode == 1){
     		PER_PWM = 2500000 / (basfrq*pnum_PWM);
-    		if(TIM1->CNT > PER_PWM/2){
-    			dutyu = SYNC[0][tca_cnt%(pnum_PWM*2)];
+    		pnum_temp = (pnum_PWM*2)/3;
+    		if(TIM1->CNT > (uint16_t)(PER_PWM/2)){
+    			dutyu = SYNC[(pnum_PWM-3)/6 - 1][tca_cnt%(pnum_PWM*2)];
+    			dutyv = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp)%(pnum_PWM*2)];
+    			dutyw = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp*2)%(pnum_PWM*2)];
+    			tca_cnt++;
+    			if(tca_cnt >= (pnum_PWM*2)){tca_cnt = 0;}
     		}
     		else{
-    			dutyu = SYNC[0][tca_cnt%(pnum_PWM*2)];
+    			dutyu = SYNC[(pnum_PWM-3)/6 - 1][tca_cnt%(pnum_PWM*2)];
+    			dutyv = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp)%(pnum_PWM*2)];
+    			dutyw = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp*2)%(pnum_PWM*2)];
+    			tca_cnt++;
     		}
-    	}
+    	}*/
     	TIM1->ARR = (uint16_t)PER_PWM;
     	TIM1->CCR1 = (uint16_t)(PER_PWM*dutyu);
     	TIM1->CCR2 = (uint16_t)(PER_PWM*dutyv);
@@ -195,9 +229,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     	}
     	TIM2->ARR = (uint32_t)(303030.30303 / basfrq);
     	if(pulse_mode == 0 || transit == 0){
-    		Asdutyu = SYNC[0][tcb2_cnt%66];
-    		Asdutyv = SYNC[0][(tcb2_cnt+22)%66];
-    		Asdutyw = SYNC[0][(tcb2_cnt+44)%66];
+    		Asdutyu = SYNC[4][tcb2_cnt%66];
+    		Asdutyv = SYNC[4][(tcb2_cnt+22)%66];
+    		Asdutyw = SYNC[4][(tcb2_cnt+44)%66];
     	}
     	tcb2_cnt++;
     	tcb2_cnt %= 66;
@@ -264,12 +298,13 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  if(basfrq < 0.1){basfrq = 0.1;}
 	  if ((GPIOC->IDR & GPIO_PIN_0) == 0){
 		  //acceleration setting
 		  motorState = 1;
 		  if(basfrq_Jerk < basfrq){
 			  JerkPole = 1;
-			  ratio = min(max(basfrq_Jerk * 8.35, 1), 501);
+			  ratio = min(max(basfrq_Jerk * 7.731 - 5.8903, 1), 501);
 			  AMP = min(max(basfrq_Jerk * 0.0185, 0), 1);
 	          OFFSET = min(max(0.5 - basfrq_Jerk * 0.00925, 0), 0.5);
 		  }
@@ -277,7 +312,7 @@ int main(void)
 			  dir = 1;
 			  JerkPole = 0;
 			  basfrq_Jerk = basfrq + 1;
-			  ratio = min(max(basfrq * 8.35, 1), 501);
+			  ratio = min(max(basfrq * 7.731 - 5.8903, 1), 501);
 			  AMP = min(max(basfrq * 0.0185, 0), 1);
 			  OFFSET = min(max(0.5 - basfrq * 0.00925, 0), 0.5);
 		  }
@@ -324,15 +359,18 @@ int main(void)
 	  		else if(basfrq >= 27){pulse_mode = CHM;alpha_num = 6;}
 	      	else if(basfrq >= 24){pulse_mode = CHM;alpha_num = 7;}
 	  		else if(basfrq >= 0){pulse_mode = Async;frq = 400;}*/
-	  		if(basfrq >= 80){pulse_mode = CHM;alpha_num = 0;}
+	  		if(basfrq >= 80 && dir == 1){pulse_mode = CHM;alpha_num = 0;}
+	  		else if(basfrq >= 80){pulse_mode = CHM;alpha_num = 1;}
 	  		else if(basfrq >= 65){pulse_mode = CHM;alpha_num = 2;}
 	  		else if(basfrq >= 63){pulse_mode = CHM;alpha_num = 3;}
 	  		else if(basfrq >= 45){pulse_mode = CHM;alpha_num = 4;}
 	  		else if(basfrq >= 40){pulse_mode = CHM;alpha_num = 5;}
-	  		else if(basfrq >= 0){pulse_mode = Async;frq = 1000;}
+	  		else if(basfrq >= 38){pulse_mode = Async;frq = 1000;}
+	  		else if(basfrq >= 10){pulse_mode = Async;frq = 14.28571*basfrq + 457.143;}
+	  		else if(basfrq >= 0){pulse_mode = Async;frq = 600;}
 	  	}
 	  	else if(motorState == -1){
-	  		if(basfrq >= 80 && dir == -1){pulse_mode = CHM;alpha_num = 0;}
+	  		/*if(basfrq >= 80 && dir == -1){pulse_mode = CHM;alpha_num = 0;}
 	  		else if(basfrq >= 70.7){pulse_mode = CHM;alpha_num = 1;}
 	  		else if(basfrq >= 63){pulse_mode = CHM;alpha_num = 2;}
 	  		else if(basfrq >= 41){pulse_mode = CHM;alpha_num = 3;}
@@ -340,7 +378,22 @@ int main(void)
 	  		else if(basfrq >= 29){pulse_mode = CHM;alpha_num = 5;}
 	  		else if(basfrq >= 25){pulse_mode = CHM;alpha_num = 6;}
 	  		else if(basfrq >= 22.5){pulse_mode = CHM;alpha_num = 7;}
-	  		else if(basfrq >= 0){pulse_mode = Async;frq = 400;}
+	  		else if(basfrq >= 5.6){pulse_mode = Async;frq = 400;}
+	  		else if(basfrq >= 5){pulse_mode = Async;frq = 350;}
+	  		else if(basfrq >= 4.3){pulse_mode = Async;frq = 311;}
+	  		else if(basfrq >= 3.4){pulse_mode = Async;frq = 294;}
+	  		else if(basfrq >= 2.7){pulse_mode = Async;frq = 262;}
+	  		else if(basfrq >= 2.0){pulse_mode = Async;frq = 233;}
+	  		else if(basfrq >= 1.5){pulse_mode = Async;frq = 223;}
+	  		else if(basfrq >= 0.5){pulse_mode = Async;frq = 196;}
+	  		else if(basfrq >= 0){pulse_mode = Async;frq = 175;}*/
+	  		if(basfrq >= 80 && dir == -1){pulse_mode = CHM;alpha_num = 0;}
+	  		else if(basfrq >= 75){pulse_mode = CHM;alpha_num = 1;}
+	  		else if(basfrq >= 66){pulse_mode = CHM;alpha_num = 3;}
+	  		else if(basfrq >= 44){pulse_mode = CHM;alpha_num = 4;}
+	  		else if(basfrq >= 39){pulse_mode = CHM;alpha_num = 5;}
+	  		else if(basfrq >= 10){pulse_mode = Async;frq = 14.28571*basfrq + 457.143;}
+	  		else if(basfrq >= 0){pulse_mode = Async;frq = 600;}
 	  	}
 
 	  	if(alpha_num == 7 && pulse_mode == 4){ampINT = (uint16_t)ratio; makePER(_7alpha, _7alpha_pole, ampINT);}
@@ -790,10 +843,10 @@ void makePER(const int alpha[][alpha_num], const int pole[], int amp){
 	shell_sort();
 	for(int i = 0; i < alpha_num*12+6 - 1; i++){
 		alpha_sort[0][i] = alpha_sort[0][i+1] - alpha_sort[0][i];
-		if(alpha_sort[0][i] < 100){alpha_sort[0][i] = 10;}
+		if(alpha_sort[0][i] < 60){alpha_sort[0][i] = 60;}
 	}
 	alpha_sort[0][alpha_num*12+6 - 1] = (uint32_t)PER - alpha_sort[0][alpha_num*12+6 - 1];
-	if(alpha_sort[0][alpha_num*12+6 - 1] < 10){alpha_sort[0][alpha_num*12+6 - 1] = 10;}
+	if(alpha_sort[0][alpha_num*12+6 - 1] < 60){alpha_sort[0][alpha_num*12+6 - 1] = 60;}
 	for(int i = 0; i < alpha_num*12+6; i++){
 		alpha_est[0][i] = alpha_sort[0][i]*4;
 		alpha_est[1][i] = alpha_sort[1][i];
