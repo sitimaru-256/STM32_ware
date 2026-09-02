@@ -61,6 +61,7 @@ UART_HandleTypeDef huart2;
 uint32_t alpha_sort[3][90];
 uint32_t alpha_est[3][90];
 uint16_t alpha_cur[3][90];
+int randnum;
 int alpha_num = 7;
 int alpha_num_cur = 7;
 float ratio = 0.0;
@@ -78,7 +79,7 @@ float Asdutyw;
 int dir;
 int motorState = 0;
 int ampINT = 0;
-int transit = 1;
+int transit = 0;//Async->0 PP-PWM->1 Sync->2
 float frq;
 float basfrq = 1;
 float basfrq_Jerk = 0.0;
@@ -87,6 +88,7 @@ int tca_cnt = 0;
 int tcb_cnt = 0;
 int tcb2_cnt = 0;
 int pulse_mode;
+int currient_pulse;
 int pnum_PWM;
 int pnum_temp;
 float PER;
@@ -115,7 +117,49 @@ void makePER(const int alpha[][alpha_num], const int pole[], int amp);
 /* USER CODE BEGIN 0 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     if(htim == &htim1){
-    	if(transit == 0 || pulse_mode <= 1){
+    	if(transit == 0){
+    		PER_PWM = 2500000 / frq;
+    		dutyu = Asdutyu * AMP / 32767 + OFFSET;
+    		dutyv = Asdutyv * AMP / 32767 + OFFSET;
+    		dutyw = Asdutyw * AMP / 32767 + OFFSET;
+    	}
+    	else if(transit == 2){
+    		PER_PWM = 2500000 / (basfrq*pnum_PWM);
+    		pnum_temp = (pnum_PWM*2)/3;
+    		if(TIM1->CNT > (uint16_t)(PER_PWM/2)){
+    			dutyu = SYNC[(pnum_PWM-3)/6 - 1][tca_cnt%(pnum_PWM*2)] * AMP / 32767 + OFFSET;
+    		    dutyv = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp)%(pnum_PWM*2)] * AMP / 32767 + OFFSET;
+    		    dutyw = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp*2)%(pnum_PWM*2)] * AMP / 32767 + OFFSET;
+    		    tca_cnt++;
+    		    if(tca_cnt >= (pnum_PWM*2)){
+    		    	if(pulse_mode == 0 && transit == 2){
+    		    		transit = 0;
+    		    		tcb2_cnt = 0;
+    		    	}
+    		    	else if(pulse_mode >= 2 && transit == 2){
+    		    		HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
+    		    		HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
+    		    		HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_3);
+    		    		GPIO_InitTypeDef GPIO_InitStruct;
+    		    		GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10;
+    		    		GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    		    		GPIO_InitStruct.Pull = GPIO_NOPULL;
+    		    		GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    		    		HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    		    		transit = 1;
+    		    		tcb_cnt = 0;
+    		    	}
+    		    	tca_cnt = 0;
+    		    }
+    		}
+    		else{
+    			dutyu = SYNC[(pnum_PWM-3)/6 - 1][tca_cnt%(pnum_PWM*2)] * AMP / 32767 + OFFSET;
+    		    dutyv = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp)%(pnum_PWM*2)] * AMP / 32767 + OFFSET;
+    		    dutyw = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp*2)%(pnum_PWM*2)] * AMP / 32767 + OFFSET;
+    		    tca_cnt++;
+    		}
+    	}
+    	/*if(transit == 0 || pulse_mode <= 1){
     		if(pulse_mode == 0){
     			PER_PWM = 2500000 / frq;
     			dutyu = Asdutyu * AMP / 32767 + OFFSET;
@@ -130,7 +174,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     			    dutyv = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp)%(pnum_PWM*2)] * AMP / 32767 + OFFSET;
     			    dutyw = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp*2)%(pnum_PWM*2)] * AMP / 32767 + OFFSET;
     			    tca_cnt++;
-    			    if(tca_cnt >= (pnum_PWM*2)){tca_cnt = 0;}
+    			    if(tca_cnt >= (pnum_PWM*2)){
+    			    	tca_cnt = 0;
+    			    }
     			}
     			else{
     			    dutyu = SYNC[(pnum_PWM-3)/6 - 1][tca_cnt%(pnum_PWM*2)] * AMP / 32767 + OFFSET;
@@ -138,29 +184,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     			    dutyw = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp*2)%(pnum_PWM*2)] * AMP / 32767 + OFFSET;
     			    tca_cnt++;
     			}
-    		}
-    	}
-    	/*if(transit == 0 || pulse_mode == 0){
-    		PER_PWM = 2500000 / frq;
-    		dutyu = Asdutyu * AMP / 32767 + OFFSET;
-    		dutyv = Asdutyv * AMP / 32767 + OFFSET;
-    		dutyw = Asdutyw * AMP / 32767 + OFFSET;
-    	}*/
-    	/*else if(transit == 0 || pulse_mode == 1){
-    		PER_PWM = 2500000 / (basfrq*pnum_PWM);
-    		pnum_temp = (pnum_PWM*2)/3;
-    		if(TIM1->CNT > (uint16_t)(PER_PWM/2)){
-    			dutyu = SYNC[(pnum_PWM-3)/6 - 1][tca_cnt%(pnum_PWM*2)];
-    			dutyv = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp)%(pnum_PWM*2)];
-    			dutyw = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp*2)%(pnum_PWM*2)];
-    			tca_cnt++;
-    			if(tca_cnt >= (pnum_PWM*2)){tca_cnt = 0;}
-    		}
-    		else{
-    			dutyu = SYNC[(pnum_PWM-3)/6 - 1][tca_cnt%(pnum_PWM*2)];
-    			dutyv = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp)%(pnum_PWM*2)];
-    			dutyw = SYNC[(pnum_PWM-3)/6 - 1][(tca_cnt+pnum_temp*2)%(pnum_PWM*2)];
-    			tca_cnt++;
     		}
     	}*/
     	TIM1->ARR = (uint16_t)PER_PWM;
@@ -170,21 +193,34 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     }
     if(htim == &htim6){
     	if(tcb_cnt == 0){
-    		if(pulse_mode == 0 || pulse_mode == 1){
-    			if(transit == 1){
-    				GPIO_InitTypeDef GPIO_InitStruct;
-    			    GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10;
-    			    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    			    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    			    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    			    GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
-    			    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    			    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-    			    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-    			    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
-    			    tcb2_cnt = 0;
-    			    transit = 0;
-    			}
+    		if(pulse_mode == 0 && transit == 1){
+    			GPIO_InitTypeDef GPIO_InitStruct;
+    			GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10;
+    			GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    			GPIO_InitStruct.Pull = GPIO_NOPULL;
+    			GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    			GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
+    			HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    			HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+    			HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+    			HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+    			tcb2_cnt = 0;
+    			transit = 0;
+
+    		}
+    		else if(pulse_mode == 1 && transit == 1){
+    			GPIO_InitTypeDef GPIO_InitStruct;
+    			GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10;
+    			GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    			GPIO_InitStruct.Pull = GPIO_NOPULL;
+    			GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    			GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
+    			HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    			HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+    			HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+    			HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+    			tca_cnt = 0;
+    			transit = 2;
     		}
     		alpha_num_cur = alpha_num;
     		for(int i = 0; i < alpha_num_cur*12+6; i++){
@@ -211,20 +247,22 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     }
     if(htim == &htim2){
     	if(tcb2_cnt == 0){
-    		if(pulse_mode != 0 && pulse_mode != 1){
-    			if(transit == 0){
-    				HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
-    				HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
-    				HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_3);
-    				GPIO_InitTypeDef GPIO_InitStruct;
-    				GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10;
-    				GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    				GPIO_InitStruct.Pull = GPIO_NOPULL;
-    				GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    				HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    				transit = 1;
-    				tcb_cnt = 0;
-    			}
+    		if(pulse_mode >= 2 && transit == 0){
+    			HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
+    			HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
+    			HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_3);
+    			GPIO_InitTypeDef GPIO_InitStruct;
+    			GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10;
+    			GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    			GPIO_InitStruct.Pull = GPIO_NOPULL;
+    			GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    			HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    			transit = 1;
+    			tcb_cnt = 0;
+    		}
+    		else if(pulse_mode == 1 && transit == 0){
+    			transit = 2;
+    			tca_cnt = 0;
     		}
     	}
     	TIM2->ARR = (uint32_t)(303030.30303 / basfrq);
@@ -239,6 +277,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     if(htim == &htim7){
     	basfrq += (0.0005 * dir);
     	if(JerkPole != 0){basfrq_Jerk += (0.008*JerkPole);}
+    	randnum = rand();
     }
 }
 /* USER CODE END 0 */
@@ -359,7 +398,8 @@ int main(void)
 	  		else if(basfrq >= 27){pulse_mode = CHM;alpha_num = 6;}
 	      	else if(basfrq >= 24){pulse_mode = CHM;alpha_num = 7;}
 	  		else if(basfrq >= 0){pulse_mode = Async;frq = 400;}*/
-	  		if(basfrq >= 80 && dir == 1){pulse_mode = CHM;alpha_num = 0;}
+
+	  		/*if(basfrq >= 80 && dir == 1){pulse_mode = CHM;alpha_num = 0;}
 	  		else if(basfrq >= 80){pulse_mode = CHM;alpha_num = 1;}
 	  		else if(basfrq >= 65){pulse_mode = CHM;alpha_num = 2;}
 	  		else if(basfrq >= 63){pulse_mode = CHM;alpha_num = 3;}
@@ -367,7 +407,10 @@ int main(void)
 	  		else if(basfrq >= 40){pulse_mode = CHM;alpha_num = 5;}
 	  		else if(basfrq >= 38){pulse_mode = Async;frq = 1000;}
 	  		else if(basfrq >= 10){pulse_mode = Async;frq = 14.28571*basfrq + 457.143;}
-	  		else if(basfrq >= 0){pulse_mode = Async;frq = 600;}
+	  		else if(basfrq >= 0){pulse_mode = Async;frq = 600;}*/
+
+	  		if(basfrq >= 45){pulse_mode = CHM;alpha_num = 3;}
+	  		else if(basfrq >= 0){pulse_mode = Async;frq = 690 + randnum%100;}
 	  	}
 	  	else if(motorState == -1){
 	  		/*if(basfrq >= 80 && dir == -1){pulse_mode = CHM;alpha_num = 0;}
