@@ -105,7 +105,8 @@ float THI_beta = 0.4;
 int cnt_THI;
 float sgn_THI = 1;
 float PER_PWM;
-float spectrum[6] = {0,10,15,35,40,50};
+float spectrum[12] = {-25,-19,-13,-11,-5,-1,1,5,11,13,19,25};
+float spect5[5] = {-25,-12.5,0,12.5,25};
 int ss_num = 0;
 /* USER CODE END PV */
 
@@ -162,13 +163,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     			dutyw = Asdutyw * (AMP + sgn_THI * THI_beta*basfrq_Jerk/basfrq) / 32767 + OFFSET;
     		}
     		else if(async_mode == 2){
-    			if(basfrq <= 7){PER_PWM = 2500000 / (frq+min(max(0.08571*basfrq + 0.4, 0.0), 1.0)*spectrum[ss_num]);}
-    			else{PER_PWM = 2500000 / (frq+min(max(2.35 + basfrq * -0.09, 0.0), 1.0)*spectrum[ss_num]);}
+    			if(basfrq <= 8){
+    				ss_num %= 12;
+    				PER_PWM = 2500000 / (frq + 0.8*spectrum[ss_num]);
+    				ss_num++;
+    			}
+    			else{
+    				ss_num %= 5;
+    				PER_PWM = 2500000 / (frq+min(max(-0.026316*basfrq + 1.184211, 0.5), 1.0)*spect5[ss_num]);
+    				ss_num++;
+    			}
     			dutyu = Asdutyu * AMP / 32767 + OFFSET;
     			dutyv = Asdutyv * AMP / 32767 + OFFSET;
     			dutyw = Asdutyw * AMP / 32767 + OFFSET;
-    			ss_num++;
-    			ss_num %= 6;
     		}
     		else if(async_mode == 1){
     			PER_PWM = 2500000 / (frq + rand_est);
@@ -436,10 +443,10 @@ int main(void)
 	  		else if(basfrq >= 51){pulse_mode = S3p;}
 	  		else if(basfrq >= 43){pulse_mode = SAMI;alpha_num = 2;}
 	        else if(basfrq >= 27){pulse_mode = SyncMp;pnum_PWM = 9;}
-	        else if(basfrq >= 10){pulse_mode = Async;frq = 6.294*basfrq + 200.059;async_mode = SSPWM;}
-	        else if(basfrq >= 7){pulse_mode = Async;frq = 249 + basfrq*4.3;async_mode = PWM;}
-	        else if(basfrq >= 3){pulse_mode = Async;frq = 1.275*basfrq + 241.175;async_mode = SSPWM;}
-	  		else if(basfrq >= 0){pulse_mode = Async;frq = 245;async_mode = SSPWM;}
+	        else if(basfrq >= 10){pulse_mode = Async;frq = 4.375*basfrq + 246.875;async_mode = SSPWM;}
+	        else if(basfrq >= 7){pulse_mode = Async;frq = 4.375*basfrq + 246.875;async_mode = PWM;}
+	        else if(basfrq >= 3){pulse_mode = Async;frq = 4.375*basfrq + 246.875;async_mode = SSPWM;}
+	  		else if(basfrq >= 0){pulse_mode = Async;frq = 260;async_mode = SSPWM;}
 	  	}
 
 	  	else if(motorState == -1){
@@ -449,9 +456,9 @@ int main(void)
 	  		else if(basfrq >= 60){pulse_mode = S3p;}
 	  		else if(basfrq >= 43){pulse_mode = SAMI;alpha_num = 2;}
 	  		else if(basfrq >= 25){pulse_mode = SyncMp;pnum_PWM = 9;}
-	  		else if(basfrq >= 10){pulse_mode = Async;frq = 198.3 + basfrq*6.07;async_mode = SSPWM;}
-	  		else if(basfrq >= 8){pulse_mode = Async;frq = 241.7 + basfrq*4.33;async_mode = PWM;}
-	  		else if(basfrq >= 0){pulse_mode = Async;frq = 216.7 + basfrq*4.33;async_mode = SSPWM;}
+	  		else if(basfrq >= 10){pulse_mode = Async;frq = 3.875 * basfrq + 253.125;async_mode = SSPWM;}
+	  		else if(basfrq >= 8){pulse_mode = Async;frq = 3.875 * basfrq + 253.125;async_mode = PWM;}
+	  		else if(basfrq >= 0){pulse_mode = Async;frq = 3.875 * basfrq + 253.125;async_mode = SSPWM;}
 	  	}
 
 	  	if(alpha_num == 7 && pulse_mode == 4){ampINT = (uint16_t)ratio; makePER(_7alpha, _7alpha_pole, ampINT);}
