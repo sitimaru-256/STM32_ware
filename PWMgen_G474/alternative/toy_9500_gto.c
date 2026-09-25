@@ -71,6 +71,7 @@ int randnum;
 int rand_est;
 int alpha_num = 7;
 int alpha_num_cur = 7;
+int alpha_num_temp = 7;
 float ratio = 0.0;
 float AMP;
 float OFFSET;
@@ -269,10 +270,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     			transit = 2;
     		}
     		alpha_num_cur = alpha_num;
-    		for(int i = 0; i < alpha_num_cur*12+6; i++){
-    			alpha_cur[0][i] = alpha_est[0][i];
-    		    alpha_cur[1][i] = alpha_est[1][i];
-    		    alpha_cur[2][i] = alpha_est[2][i];
+    		if(alpha_num_cur == alpha_num_temp){
+    			for(int i = 0; i < alpha_num_cur*12+6; i++){
+    				alpha_cur[0][i] = alpha_est[0][i];
+    			    alpha_cur[1][i] = alpha_est[1][i];
+    			    alpha_cur[2][i] = alpha_est[2][i];
+    			}
     		}
     		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);
     		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
@@ -282,6 +285,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     		TIM5->ARR = (uint32_t)(alpha_cur[0][tcb_cnt+1]*800 / basfrq);
     	}
     	else{
+			alpha_num_temp = alpha_num;
     		for(int i = 0; i < alpha_num*12+6; i++){
     			alpha_cur[0][i] = alpha_est[0][i];
     			alpha_cur[1][i] = alpha_est[1][i];
