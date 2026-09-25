@@ -34,6 +34,7 @@ extern const int SAMI7[509][3];
 extern const int SAMI5[509][2];
 
 extern const int SHE11[509][5];
+extern const int SHE11_2[509][5];
 extern const int SHE7[509][3];
 extern const int SHE5[509][2];
 
