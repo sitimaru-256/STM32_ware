@@ -71,6 +71,7 @@ int randnum;
 int rand_est;
 int alpha_num = 7;
 int alpha_num_cur = 7;
+int alpha_num_temp = 7;
 float ratio = 0.0;
 float AMP;
 float OFFSET;
@@ -89,7 +90,7 @@ int ampINT = 0;
 int transit = 0;//Async->0 PP-PWM->1 Sync->2
 int tran_tim5 = 0;
 float frq;
-float basfrq = 1;
+float basfrq = 0.1;
 float basfrq_Jerk = 0.0;
 int JerkPole;
 int tca_cnt = 0;
@@ -259,10 +260,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     			transit = 2;
     		}
     		alpha_num_cur = alpha_num;
-    		for(int i = 0; i < alpha_num_cur*12+6; i++){
-    			alpha_cur[0][i] = alpha_est[0][i];
-    		    alpha_cur[1][i] = alpha_est[1][i];
-    		    alpha_cur[2][i] = alpha_est[2][i];
+    		if(alpha_num_cur == alpha_num_temp){
+    			for(int i = 0; i < alpha_num_cur*12+6; i++){
+    				alpha_cur[0][i] = alpha_est[0][i];
+    			    alpha_cur[1][i] = alpha_est[1][i];
+    			    alpha_cur[2][i] = alpha_est[2][i];
+    			}
     		}
     		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);
     		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
@@ -272,6 +275,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     		TIM5->ARR = (uint32_t)(alpha_cur[0][tcb_cnt+1]*800 / basfrq);
     	}
     	else{
+    		alpha_num_temp = alpha_num;
     		for(int i = 0; i < alpha_num*12+6; i++){
     			alpha_cur[0][i] = alpha_est[0][i];
     			alpha_cur[1][i] = alpha_est[1][i];
@@ -435,13 +439,11 @@ int main(void)
 	        else if(basfrq >= 24){pulse_mode = SyncMp;pnum_PWM = 15;}
 	  		else if(basfrq >= 0){pulse_mode = Async;frq = 400;}*/
 
-	  		if(basfrq >= 61 && dir == 1){pulse_mode = CHM;alpha_num = 0;}
-	  		else if(basfrq >= 43){pulse_mode = W3p;}
-	  		//else if(basfrq >= 43){pulse_mode = CHM;alpha_num = 7;}
-	  		//else if(basfrq >= 43){pulse_mode = SAMI;alpha_num = 5;}
-	  		//else if(basfrq >= 31){pulse_mode = SyncMp;pnum_PWM = 9;}
-	  		else if(basfrq >= 14){pulse_mode = SyncMp;pnum_PWM = 9;}
-	  		else if(basfrq >= 0){pulse_mode = Async;frq = 1800;}
+	  		if(basfrq >= 51.6667 && dir == 1){pulse_mode = CHM;alpha_num = 0;}
+	  		else if(basfrq >= 38.4615){pulse_mode = CHM;alpha_num = 7;}
+	  		else if(basfrq >= 32.2581){pulse_mode = Async;frq = 112.841*basfrq - 2890.047;}
+	  		else if(basfrq >= 14.2857){pulse_mode = Async;frq = 12.519*basfrq + 346.155;}
+	  		else if(basfrq >= 0){pulse_mode = Async;frq = 525;}
 
 
 	  		/*if(basfrq >= 80 && dir == 1){pulse_mode = CHM;alpha_num = 0;}
@@ -457,11 +459,11 @@ int main(void)
 
 	  	else if(motorState == -1){
 	  		if(basfrq >= 73 && dir == -1){pulse_mode = CHM;alpha_num = 0;}
-	  		else if(basfrq >= 66.5){pulse_mode = W3p;}
-	  		else if(basfrq >= 45){pulse_mode = S3p;}
+	  		//else if(basfrq >= 66.5){pulse_mode = W3p;}
+	  		//else if(basfrq >= 60){pulse_mode = S3p;}
 	  		//else if(basfrq >= 40.5){pulse_mode = SAMI;alpha_num = 2;}
 	  		//else if(basfrq >= 31){pulse_mode = SAMI;alpha_num = 2;}
-	  		else if(basfrq >= 20.5){pulse_mode = SyncMp;pnum_PWM = 9;}
+	  		else if(basfrq >= 20.5){pulse_mode = SHE;alpha_num = 5;}
 	  		//else if(basfrq >= 6.5){pulse_mode = SyncMp;pnum_PWM = 21;}
 	  		else if(basfrq >= 0){pulse_mode = Async;frq = 1800;}
 
@@ -859,9 +861,17 @@ void swap (uint32_t *x, uint32_t *y){
 	*y = temp;
 }
 void modulation_acc (float a){
-	ratio = min(max(a * 8.95943, 1), 502);
-	AMP = min(max(a * 0.02245, 0), 1);
-	OFFSET = min(max(0.5 - a * 0.011225, 0), 0.5);
+	if(basfrq >= 32.2581){
+		AMP = min(max(0.0838*a - 1.7040, 0), 1.52);
+		OFFSET = min(max(-0.0419*a + 1.352, -0.26), 0.5);
+	}
+	else if(basfrq >= 0){
+		AMP = min(max(a * 0.031, 0), 1);
+		OFFSET = min(max(0.5 - a * 0.0155, 0), 0.5);
+	}
+	ratio = min(max(44.74*a - 1365.1597, 1), 502);
+	//AMP = min(max(a * 0.02245, 0), 1);
+	//OFFSET = min(max(0.5 - a * 0.011225, 0), 0.5);
 }
 void modulation_dec (float a){
 	ratio = min(max(a * 6.9589, 1), 502);
