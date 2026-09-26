@@ -258,9 +258,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     			HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
     			HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
     			transit = 2;
-    		}
-    		alpha_num_cur = alpha_num;
+			}
     		if(alpha_num_cur == alpha_num_temp){
+				alpha_num_cur = alpha_num;
     			for(int i = 0; i < alpha_num_cur*12+6; i++){
     				alpha_cur[0][i] = alpha_est[0][i];
     			    alpha_cur[1][i] = alpha_est[1][i];
@@ -285,6 +285,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     	}
     	tcb_cnt += 1;
     	if(tran_tim5 == 0){
+			alpha_num_cur = alpha_num;
+			for(int i = 0; i < alpha_num_cur*12+6; i++){
+    			alpha_cur[0][i] = alpha_est[0][i];
+    		    alpha_cur[1][i] = alpha_est[1][i];
+    		    alpha_cur[2][i] = alpha_est[2][i];
+    		}
     		TIM5->ARR = (uint32_t)(alpha_cur[0][0]*800 / basfrq);
     		tcb_cnt = 0;
     		tran_tim5 = 1;
