@@ -259,7 +259,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     			HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
     			transit = 2;
 			}
-    		if(alpha_num_cur == alpha_num_temp){
+    		if(alpha_num_temp == alpha_num){
 				alpha_num_cur = alpha_num;
     			for(int i = 0; i < alpha_num_cur*12+6; i++){
     				alpha_cur[0][i] = alpha_est[0][i];
