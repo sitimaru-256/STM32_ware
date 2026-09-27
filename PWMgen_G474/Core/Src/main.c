@@ -90,7 +90,7 @@ int ampINT = 0;
 int transit = 0;//Async->0 PP-PWM->1 Sync->2
 int tran_tim5 = 0;
 float frq;
-float basfrq = 0.1;
+float basfrq = 1;
 float basfrq_Jerk = 0.0;
 int JerkPole;
 int tca_cnt = 0;
@@ -258,9 +258,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     			HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
     			HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
     			transit = 2;
-    		}
-    		alpha_num_cur = alpha_num;
-    		if(alpha_num_cur == alpha_num_temp){
+			}
+    		if(alpha_num_temp == alpha_num){
+				alpha_num_cur = alpha_num;
     			for(int i = 0; i < alpha_num_cur*12+6; i++){
     				alpha_cur[0][i] = alpha_est[0][i];
     			    alpha_cur[1][i] = alpha_est[1][i];
@@ -275,7 +275,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     		TIM5->ARR = (uint32_t)(alpha_cur[0][tcb_cnt+1]*800 / basfrq);
     	}
     	else{
-    		alpha_num_temp = alpha_num;
+			alpha_num_temp = alpha_num;
     		for(int i = 0; i < alpha_num*12+6; i++){
     			alpha_cur[0][i] = alpha_est[0][i];
     			alpha_cur[1][i] = alpha_est[1][i];
@@ -285,6 +285,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     	}
     	tcb_cnt += 1;
     	if(tran_tim5 == 0){
+			alpha_num_cur = alpha_num;
+			for(int i = 0; i < alpha_num_cur*12+6; i++){
+    			alpha_cur[0][i] = alpha_est[0][i];
+    		    alpha_cur[1][i] = alpha_est[1][i];
+    		    alpha_cur[2][i] = alpha_est[2][i];
+    		}
     		TIM5->ARR = (uint32_t)(alpha_cur[0][0]*800 / basfrq);
     		tcb_cnt = 0;
     		tran_tim5 = 1;
@@ -431,75 +437,35 @@ int main(void)
 	  }
 
 	  if(motorState == 1){
-	  		/*if(basfrq >= 56.6 && dir == 1){pulse_mode = CHM;alpha_num = 0;}
-	  		else if(basfrq >= 53.1){pulse_mode = W3p;}
-	  		else if(basfrq >= 46.7){pulse_mode = S3p;}
-	  		else if(basfrq >= 35){pulse_mode = SAMI;alpha_num = 3;}
-	  		else if(basfrq >= 28.5){pulse_mode = SAMI;alpha_num = 5;}
-	        else if(basfrq >= 24){pulse_mode = SyncMp;pnum_PWM = 15;}
-	  		else if(basfrq >= 0){pulse_mode = Async;frq = 400;}*/
-
-	  		if(basfrq >= 51.6667 && dir == 1){pulse_mode = CHM;alpha_num = 0;}
-	  		else if(basfrq >= 38.4615){pulse_mode = CHM;alpha_num = 7;}
-	  		else if(basfrq >= 32.2581){pulse_mode = Async;frq = 112.841*basfrq - 2890.047;}
-	  		else if(basfrq >= 14.2857){pulse_mode = Async;frq = 12.519*basfrq + 346.155;}
-	  		else if(basfrq >= 0){pulse_mode = Async;frq = 525;}
-
-
-	  		/*if(basfrq >= 80 && dir == 1){pulse_mode = CHM;alpha_num = 0;}
-	  		else if(basfrq >= 80){pulse_mode = CHM;alpha_num = 1;}
-	  		else if(basfrq >= 65){pulse_mode = CHM;alpha_num = 2;}
-	  		else if(basfrq >= 63){pulse_mode = CHM;alpha_num = 3;}
-	  		else if(basfrq >= 45){pulse_mode = CHM;alpha_num = 4;}
-	  		else if(basfrq >= 40){pulse_mode = CHM;alpha_num = 5;}
-	  		else if(basfrq >= 38){pulse_mode = Async;frq = 1000;}
-	  		else if(basfrq >= 10){pulse_mode = Async;frq = 14.28571*basfrq + 457.143;}
-	  		else if(basfrq >= 0){pulse_mode = Async;frq = 600;}*/
+		  if(basfrq >= 80 && dir == 1){pulse_mode = CHM;alpha_num = 0;}
+		  else if(basfrq >= 59){pulse_mode = CHM;alpha_num = 1;}
+		  else if(basfrq >= 57){pulse_mode = CHM;alpha_num = 2;}
+		  else if(basfrq >= 43.5){pulse_mode = CHM;alpha_num = 3;}
+		  else if(basfrq >= 36.7){pulse_mode = CHM;alpha_num = 4;}
+		  else if(basfrq >= 30){pulse_mode = CHM;alpha_num = 5;}
+		  else if(basfrq >= 27){pulse_mode = CHM;alpha_num = 6;}
+		  else if(basfrq >= 24){pulse_mode = CHM;alpha_num = 7;}
+		  else if(basfrq >= 5.6){pulse_mode = Async;frq = 400;}
+		  else if(basfrq >= 5.0){pulse_mode = Async;frq = 350;}
+		  else if(basfrq >= 4.3){pulse_mode = Async;frq = 311;}
+		  else if(basfrq >= 3.4){pulse_mode = Async;frq = 294;}
+		  else if(basfrq >= 2.7){pulse_mode = Async;frq = 262;}
+		  else if(basfrq >= 2.0){pulse_mode = Async;frq = 233;}
+		  else if(basfrq >= 1.5){pulse_mode = Async;frq = 223;}
+		  else if(basfrq >= 0.5){pulse_mode = Async;frq = 196;}
+		  else if(basfrq >= 0){pulse_mode = Async;frq = 175;}
 	  	}
 
 	  	else if(motorState == -1){
-	  		if(basfrq >= 73 && dir == -1){pulse_mode = CHM;alpha_num = 0;}
-	  		//else if(basfrq >= 66.5){pulse_mode = W3p;}
-	  		//else if(basfrq >= 60){pulse_mode = S3p;}
-	  		//else if(basfrq >= 40.5){pulse_mode = SAMI;alpha_num = 2;}
-	  		//else if(basfrq >= 31){pulse_mode = SAMI;alpha_num = 2;}
-	  		else if(basfrq >= 20.5){pulse_mode = SHE;alpha_num = 5;}
-	  		//else if(basfrq >= 6.5){pulse_mode = SyncMp;pnum_PWM = 21;}
-	  		else if(basfrq >= 0){pulse_mode = Async;frq = 1800;}
-
-	  		/*if(basfrq >= 80 && dir == -1){pulse_mode = CHM;alpha_num = 0;}
-	  		else if(basfrq >= 65){pulse_mode = S3p;}
-	  		else if(basfrq >= 50){pulse_mode = SAMI;alpha_num = 2;}
-	  		else if(basfrq >= 30){pulse_mode = SyncMp;pnum_PWM = 9;}
-	  		else if(basfrq >= 14){pulse_mode = SyncMp;pnum_PWM = 15;}
-	  		else if(basfrq >= 10){pulse_mode = SyncMp;pnum_PWM = 27;}
-	  		else if(basfrq >= 0){pulse_mode = Async;frq = 2500;}*/
-
-	  		/*if(basfrq >= 80 && dir == -1){pulse_mode = CHM;alpha_num = 0;}
+	  		if(basfrq >= 80 && dir == -1){pulse_mode = CHM;alpha_num = 0;}
 	  		else if(basfrq >= 70.7){pulse_mode = CHM;alpha_num = 1;}
 	  		else if(basfrq >= 63){pulse_mode = CHM;alpha_num = 2;}
 	  		else if(basfrq >= 41){pulse_mode = CHM;alpha_num = 3;}
 	  		else if(basfrq >= 34.5){pulse_mode = CHM;alpha_num = 4;}
 	  		else if(basfrq >= 29){pulse_mode = CHM;alpha_num = 5;}
-	  		else if(basfrq >= 25){pulse_mode = CHM;alpha_num = 2;}
-	  		else if(basfrq >= 22.5){pulse_mode = CHM;alpha_num = 1;}
-	  		else if(basfrq >= 5.6){pulse_mode = Async;frq = 400;}
-	  		else if(basfrq >= 5){pulse_mode = Async;frq = 350;}
-	  		else if(basfrq >= 4.3){pulse_mode = Async;frq = 311;}
-	  		else if(basfrq >= 3.4){pulse_mode = Async;frq = 294;}
-	  		else if(basfrq >= 2.7){pulse_mode = Async;frq = 262;}
-	  		else if(basfrq >= 2.0){pulse_mode = Async;frq = 233;}
-	  		else if(basfrq >= 1.5){pulse_mode = Async;frq = 223;}
-	  		else if(basfrq >= 0.5){pulse_mode = Async;frq = 196;}
-	  		else if(basfrq >= 0){pulse_mode = Async;frq = 175;}*/
-
-	  		/*if(basfrq >= 80 && dir == -1){pulse_mode = CHM;alpha_num = 0;}
-	  		else if(basfrq >= 75){pulse_mode = CHM;alpha_num = 1;}
-	  		else if(basfrq >= 66){pulse_mode = CHM;alpha_num = 3;}
-	  		else if(basfrq >= 44){pulse_mode = CHM;alpha_num = 4;}
-	  		else if(basfrq >= 39){pulse_mode = CHM;alpha_num = 5;}
-	  		else if(basfrq >= 10){pulse_mode = Async;frq = 14.28571*basfrq + 457.143;}
-	  		else if(basfrq >= 0){pulse_mode = Async;frq = 600;}*/
+	  		else if(basfrq >= 25){pulse_mode = CHM;alpha_num = 6;}
+	  		else if(basfrq >= 22.5){pulse_mode = CHM;alpha_num = 7;}
+	  		else if(basfrq >= 0){pulse_mode = Async;frq = 400;}
 	  	}
 
 	  	if(alpha_num == 7 && pulse_mode == 4){ampINT = (uint16_t)ratio; makePER(_7alpha, _7alpha_pole, ampINT);}
@@ -861,22 +827,14 @@ void swap (uint32_t *x, uint32_t *y){
 	*y = temp;
 }
 void modulation_acc (float a){
-	if(basfrq >= 32.2581){
-		AMP = min(max(0.0838*a - 1.7040, 0), 1.52);
-		OFFSET = min(max(-0.0419*a + 1.352, -0.26), 0.5);
-	}
-	else if(basfrq >= 0){
-		AMP = min(max(a * 0.031, 0), 1);
-		OFFSET = min(max(0.5 - a * 0.0155, 0), 0.5);
-	}
-	ratio = min(max(44.74*a - 1365.1597, 1), 502);
-	//AMP = min(max(a * 0.02245, 0), 1);
-	//OFFSET = min(max(0.5 - a * 0.011225, 0), 0.5);
+	ratio = min(max(8.344262 * a, 4.172131 * basfrq), 502);
+	AMP = min(max(a * 0.02375, basfrq * 0.011875), 1);
+	OFFSET = min(max(0.5 - a * 0.011875, 0), 0.5 - basfrq * 0.0059375);
 }
 void modulation_dec (float a){
-	ratio = min(max(a * 6.9589, 1), 502);
-	AMP = min(max(a * 0.01727, 0), 1);
-	OFFSET = min(max(0.5 - a * 0.008635, 0), 0.5);
+	ratio = min(max(a * 6.972603, 4.172131 * basfrq), 502);
+	AMP = min(max(a * 0.017826, basfrq * 0.011875), 1);
+	OFFSET = min(max(0.5 - a * 0.008913, 0), 0.5 - basfrq * 0.0059375);
 }
 void shell_sort (void){
 	int i, j, h, array_size;
