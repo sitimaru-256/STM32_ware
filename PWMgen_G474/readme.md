@@ -1,5 +1,5 @@
 ## wire connections
-PD4 and PD5 pin is set as pull_up, but too weak to drive. It is recommended that add external 1kΩ resistor like that graph shown below.
+The PD4 and PD5 pins are configured as pull-ups, but their drive strength is too weak. Adding an external 1 kΩ resistor is recommended, as shown in the figure below.
 ```
                   /———————————\
 3V3——————————+————|3V3        |
