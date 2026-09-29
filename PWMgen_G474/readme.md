@@ -15,4 +15,7 @@ ACC——————————+————|PC4        |
 GND———————————————|GND        |
                   \___________/
 ```
-
+## PWM output
+phase U: PC0
+phase V: PC1
+phase W: PC2
