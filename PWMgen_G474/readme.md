@@ -1,5 +1,6 @@
 ## wire connections
 The PD4 and PD5 pins are configured as pull-ups, but their drive strength is too weak. Adding an external 1 kΩ resistor is recommended, as shown in the figure below.
+### connecting around the MCU
 ```
                   /———————————\
 3V3——————————+————|3V3        |
@@ -14,6 +15,14 @@ ACC——————————+————|PC4        |
                   |           |
 GND———————————————|GND        |
                   \___________/
+```
+### toggle switch(example)
+```
+            /———————\       =====[===]
+ACC—————————|       |  ========
+3V3—————————|       ======
+BRK—————————|       |
+            \———————/
 ```
 ## PWM output
 phase U: PC0
