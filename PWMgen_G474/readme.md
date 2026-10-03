@@ -1,5 +1,5 @@
 ## wire connections
-The PD4 and PD5 pins are configured as pull-ups, but their drive strength is too weak. Adding an external 1 kΩ resistor is recommended, as shown in the figure below.
+The PC4 and PC5 pins are configured as pull-ups, but their drive strength is too weak. Adding an external 1 kΩ resistor is recommended, as shown in the figure below.
 ### connecting around the MCU
 ```
                   /———————————\
